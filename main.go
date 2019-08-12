@@ -4,10 +4,8 @@ import (
 	"os"
 	"fmt"
 	"errors"
-	"time"
 
-	"golang.org/x/crypto/ssh"
-	"golang.org/x/crypto/ssh/terminal"
+	"github.com/aaronraff/easyftp/clients"
 )
 
 func main() {
@@ -17,7 +15,7 @@ func main() {
 	}
 
 	addr := os.Args[1]
-	sshClient, err := createSSHClient(addr)
+	sshClient, err := clients.CreateSSHClient(addr)
 
 	if err != nil {
 		fmt.Println(err)
@@ -34,42 +32,4 @@ func validateArgs() error {
 	}
 
 	return nil
-}
-
-func createSSHClient(addr string) (*ssh.Client, error) {
-	var hostKey ssh.PublicKey
-	username, password, err := getCredentials()
-
-	if err != nil {
-		return nil, err
-	}
-
-	config := &ssh.ClientConfig{
-		User: username,
-		Auth: []ssh.AuthMethod{
-			ssh.Password(password),
-		},
-		HostKeyCallback: ssh.FixedHostKey(hostKey),
-		Timeout: time.Duration(10) * time.Second,
-	}
-
-	client, err := ssh.Dial("tcp", addr, config)
-	fmt.Println(hostKey)
-
-	return client, err
-}
-
-func getCredentials() (string, string, error) {
-	var username string
-	fmt.Print("Username: ")
-	fmt.Scanln(&username)
-
-	fmt.Print("Password: ")
-	password, err := terminal.ReadPassword(0)
-
-	if err != nil {
-		return "", "", err
-	}
-
-	return username, string(password), nil
 }
