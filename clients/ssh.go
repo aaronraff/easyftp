@@ -9,40 +9,35 @@ import (
 )
 
 func CreateSSHClient(addr string) (*ssh.Client, error) {
-	var hostKey ssh.PublicKey
-	username, password, err := getCredentials()
-
-	if err != nil {
-		return nil, err
-	}
+	certChecker := &ssh.CertChecker{}
 
 	config := &ssh.ClientConfig{
-		User: username,
 		Auth: []ssh.AuthMethod{
-			ssh.Password(password),
+			ssh.KeyboardInteractive(keyboardChallenge),
 		},
-		HostKeyCallback: ssh.FixedHostKey(hostKey),
+		HostKeyCallback: certChecker.CheckHostKey,
 		Timeout: time.Duration(10) * time.Second,
 	}
 
 	addrWithPort := fmt.Sprintf("%s:22", addr)
 	client, err := ssh.Dial("tcp", addrWithPort, config)
-	fmt.Println(hostKey)
 
 	return client, err
 }
 
-func getCredentials() (string, string, error) {
-	var username string
-	fmt.Print("Username: ")
-	fmt.Scanln(&username)
+func keyboardChallenge(user, instruction string, questions []string, echos []bool) (answers []string, err error) {
+	var res []byte
 
-	fmt.Print("Password: ")
-	password, err := terminal.ReadPassword(0)
+	for i := 0; i < len(questions); i++ {
+		fmt.Println(questions[i])
 
-	if err != nil {
-		return "", "", err
+		if echos[i] == true {
+			res, err = terminal.ReadPassword(0);
+			answers[i] = string(res)
+		} else {
+			fmt.Scanln(&answers[i])
+		}
 	}
 
-	return username, string(password), nil
+	return
 }

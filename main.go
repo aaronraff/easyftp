@@ -15,14 +15,12 @@ func main() {
 	}
 
 	addr := os.Args[1]
-	sshClient, err := clients.CreateSSHClient(addr)
+	_, err := clients.CreateSSHClient(addr)
 
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	fmt.Println("test...")
-	fmt.Println(sshClient)
 }
 
 func validateArgs() error {
