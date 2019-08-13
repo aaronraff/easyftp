@@ -1,43 +1,59 @@
 package clients
 
 import (
+	"os"
+	"strings"
 	"fmt"
 	"time"
 
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/knownhosts"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
-func CreateSSHClient(addr string) (*ssh.Client, error) {
-	certChecker := &ssh.CertChecker{}
+var username string = os.Getenv("USER")
 
-	config := &ssh.ClientConfig{
-		Auth: []ssh.AuthMethod{
-			ssh.KeyboardInteractive(keyboardChallenge),
-		},
-		HostKeyCallback: certChecker.CheckHostKey,
-		Timeout: time.Duration(10) * time.Second,
+func CreateSSHClient(addr string) (*ssh.Client, error) {
+	parseAddrAndSetUser(addr)
+
+	homeDir := os.Getenv("HOME")
+	hostKeyCallback, err := knownhosts.New(homeDir + "/.ssh/known_hosts")
+
+	if err != nil {
+		return nil, err
 	}
 
-	addrWithPort := fmt.Sprintf("%s:22", addr)
+	config := generateClientConfig(hostKeyCallback)
+
+	addrWithPort := addr + ":22"
 	client, err := ssh.Dial("tcp", addrWithPort, config)
 
 	return client, err
 }
 
-func keyboardChallenge(user, instruction string, questions []string, echos []bool) (answers []string, err error) {
-	var res []byte
+func parseAddrAndSetUser(addr string) {
+	parts := strings.Split(addr, "@")
 
-	for i := 0; i < len(questions); i++ {
-		fmt.Println(questions[i])
-
-		if echos[i] == true {
-			res, err = terminal.ReadPassword(0);
-			answers[i] = string(res)
-		} else {
-			fmt.Scanln(&answers[i])
-		}
+	if len(parts) > 1 {
+		username = parts[0]
 	}
+}
 
-	return
+func generateClientConfig(hostKeyCallback ssh.HostKeyCallback) *ssh.ClientConfig {
+	return &ssh.ClientConfig{
+		User: username, 
+		Auth: []ssh.AuthMethod{
+			ssh.PasswordCallback(passwordPrompt),
+		},
+		HostKeyCallback: hostKeyCallback,
+		Timeout: time.Duration(10) * time.Second,
+	}
+}
+
+func passwordPrompt() (string, error) {
+	var res []byte
+	fmt.Print("Password for " + username + ": ")
+	res, err := terminal.ReadPassword(0);
+
+	return string(res), err
 }
