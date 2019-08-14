@@ -4,6 +4,7 @@ import (
 	"os"
 	"fmt"
 	"errors"
+	"strings"
 
 	"github.com/aaronraff/easyftp/clients"
 )
@@ -15,7 +16,8 @@ func main() {
 	}
 
 	addr := os.Args[1]
-	_, err := clients.CreateSSHClient(addr)
+	user, host := parseAddrForUserAndHost(addr)
+	_, err := clients.CreateSSHClient(host, user)
 
 	if err != nil {
 		fmt.Println(err)
@@ -30,4 +32,14 @@ func validateArgs() error {
 	}
 
 	return nil
+}
+
+func parseAddrForUserAndHost(addr string) (string, string) {
+	parts := strings.Split(addr, "@")
+
+	if len(parts) > 1 {
+		return parts[0], parts[1]
+	}
+
+	return os.Getenv("USER"), parts[0]
 }

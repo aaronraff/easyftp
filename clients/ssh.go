@@ -2,7 +2,6 @@ package clients
 
 import (
 	"os"
-	"strings"
 	"fmt"
 	"time"
 
@@ -11,11 +10,10 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 )
 
-var username string = os.Getenv("USER")
+var user string
 
-func CreateSSHClient(addr string) (*ssh.Client, error) {
-	parseAddrAndSetUser(addr)
-
+func CreateSSHClient(host string, username string) (*ssh.Client, error) {
+	user = username
 	homeDir := os.Getenv("HOME")
 	hostKeyCallback, err := knownhosts.New(homeDir + "/.ssh/known_hosts")
 
@@ -23,25 +21,17 @@ func CreateSSHClient(addr string) (*ssh.Client, error) {
 		return nil, err
 	}
 
-	config := generateClientConfig(hostKeyCallback)
+	config := generateClientConfig(hostKeyCallback, user)
 
-	addrWithPort := addr + ":22"
-	client, err := ssh.Dial("tcp", addrWithPort, config)
+	addr := host + ":22"
+	client, err := ssh.Dial("tcp", addr, config)
 
 	return client, err
 }
 
-func parseAddrAndSetUser(addr string) {
-	parts := strings.Split(addr, "@")
-
-	if len(parts) > 1 {
-		username = parts[0]
-	}
-}
-
-func generateClientConfig(hostKeyCallback ssh.HostKeyCallback) *ssh.ClientConfig {
+func generateClientConfig(hostKeyCallback ssh.HostKeyCallback, user string) *ssh.ClientConfig {
 	return &ssh.ClientConfig{
-		User: username, 
+		User: user, 
 		Auth: []ssh.AuthMethod{
 			ssh.PasswordCallback(passwordPrompt),
 		},
@@ -52,7 +42,7 @@ func generateClientConfig(hostKeyCallback ssh.HostKeyCallback) *ssh.ClientConfig
 
 func passwordPrompt() (string, error) {
 	var res []byte
-	fmt.Print("Password for " + username + ": ")
+	fmt.Print("Password for " + user + ": ")
 	res, err := terminal.ReadPassword(0);
 
 	return string(res), err
