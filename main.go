@@ -2,33 +2,40 @@ package main
 
 import (
 	"os"
-	"fmt"
+	"log"
 	"errors"
 	"strings"
+	"sync"
 
 	"github.com/aaronraff/easyftp/clients"
+	"github.com/pkg/sftp"
 )
 
 func main() {
 	if err := validateArgs(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 
 	addr := os.Args[1]
 	user, host := parseAddrForUserAndHost(addr)
-	_, err := clients.CreateSSHClient(host, user)
-
+	sshClient, err := clients.CreateSSHClient(host, user)
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal("Failed to create SSH client: ", err)
 		os.Exit(1)
 	}
+
+	sftpClient, err := sftp.NewClient(sshClient)
+	if err != nil {
+		log.Fatal("Failed to create SFTP session: ", err)
+	}
+
+	defer sftpClient.Close()
+	startHandler(sftpClient)
 }
 
 func validateArgs() error {
 	if len(os.Args) < 2 {
-		errMsg := fmt.Sprintf("Usage: %s address", os.Args[0])
-		return errors.New(errMsg)
+		return errors.New("Usage: " + os.Args[0] + " address")
 	}
 
 	return nil
@@ -36,10 +43,16 @@ func validateArgs() error {
 
 func parseAddrForUserAndHost(addr string) (string, string) {
 	parts := strings.Split(addr, "@")
-
 	if len(parts) > 1 {
 		return parts[0], parts[1]
 	}
 
 	return os.Getenv("USER"), parts[0]
+}
+
+func startHandler(sftpClient *sftp.Client) {
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go handleSftpRequests(sftpClient, wg)
+	wg.Wait()
 }
