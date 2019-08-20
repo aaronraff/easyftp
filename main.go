@@ -7,7 +7,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/aaronraff/easyftp/clients"
+	"github.com/aaronraff/easyftp/clients/ssh"
 	"github.com/pkg/sftp"
 )
 
@@ -18,7 +18,7 @@ func main() {
 
 	addr := os.Args[1]
 	user, host := parseAddrForUserAndHost(addr)
-	sshClient, err := clients.CreateSSHClient(host, user)
+	sshClient, err := ssh.CreateSSHClient(host, user)
 	if err != nil {
 		log.Fatal("Failed to create SSH client: ", err)
 		os.Exit(1)
