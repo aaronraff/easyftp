@@ -5,9 +5,9 @@ import (
 	"log"
 	"errors"
 	"strings"
-	"sync"
 
 	"github.com/aaronraff/easyftp/clients/ssh"
+	"github.com/aaronraff/easyftp/requestHandler"
 	"github.com/pkg/sftp"
 )
 
@@ -30,7 +30,7 @@ func main() {
 	}
 
 	defer sftpClient.Close()
-	startHandler(sftpClient)
+	requestHandler.HandleRequests(sftpClient)
 }
 
 func validateArgs() error {
@@ -48,11 +48,4 @@ func parseAddrForUserAndHost(addr string) (string, string) {
 	}
 
 	return os.Getenv("USER"), parts[0]
-}
-
-func startHandler(sftpClient *sftp.Client) {
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go handleSftpRequests(sftpClient, wg)
-	wg.Wait()
 }
