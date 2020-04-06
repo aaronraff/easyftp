@@ -1,10 +1,10 @@
 package ssh
 
 import (
-	"os"
 	"fmt"
-	"time"
 	"io/ioutil"
+	"os"
+	"time"
 
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/knownhosts"
@@ -23,39 +23,36 @@ func CreateSSHClient(host string, username string) (*ssh.Client, error) {
 	}
 
 	config := generateClientConfig(hostKeyCallback, user)
-
 	addr := host + ":22"
 	client, err := ssh.Dial("tcp", addr, config)
-
 	return client, err
 }
 
 func generateClientConfig(hostKeyCallback ssh.HostKeyCallback, user string) *ssh.ClientConfig {
 	return &ssh.ClientConfig{
-		User: user, 
+		User: user,
 		Auth: []ssh.AuthMethod{
 			ssh.PublicKeysCallback(obtainPublicKey),
 			ssh.PasswordCallback(passwordPrompt),
 		},
 		HostKeyCallback: hostKeyCallback,
-		Timeout: time.Duration(10) * time.Second,
+		Timeout:         time.Duration(10) * time.Second,
 	}
 }
 
 func obtainPublicKey() ([]ssh.Signer, error) {
-	key, err := ioutil.ReadFile(homeDir + "/.ssh/id_rsa")	
+	key, err := ioutil.ReadFile(homeDir + "/.ssh/id_rsa")
 	if err != nil {
 		return nil, err
 	}
 
 	signer, err := ssh.ParsePrivateKey(key)
-	return []ssh.Signer { signer }, err
+	return []ssh.Signer{signer}, err
 }
 
 func passwordPrompt() (string, error) {
 	var res []byte
 	fmt.Print("Password for " + user + ": ")
-	res, err := terminal.ReadPassword(0);
-
+	res, err := terminal.ReadPassword(0)
 	return string(res), err
 }

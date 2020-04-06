@@ -1,9 +1,9 @@
 package main
 
 import (
-	"os"
-	"log"
 	"errors"
+	"log"
+	"os"
 	"strings"
 
 	"github.com/aaronraff/easyftp/clients/ssh"
